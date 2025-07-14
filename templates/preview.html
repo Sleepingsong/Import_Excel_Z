@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="th">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ยืนยันข้อมูลก่อนนำเข้า</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f0f2f5; margin: 0; padding: 2rem; }
+        .container { background: #fff; padding: 2rem; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 95%; margin: auto; box-sizing: border-box; }
+        h1 { color: #0056b3; }
+        p { color: #606770; }
+        .table-wrapper { overflow-x: auto; margin-bottom: 2rem; border: 1px solid #ddd; max-height: 60vh; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; white-space: nowrap; }
+        th { background-color: #f2f2f2; position: sticky; top: 0; z-index: 1; }
+        .actions { display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1rem; }
+        .btn { padding: 10px 20px; border-radius: 5px; border: none; cursor: pointer; font-weight: bold; text-decoration: none; display: inline-block; }
+        .btn-confirm { background-color: #28a745; color: white; }
+        .btn-confirm:hover { background-color: #218838; }
+        .btn-cancel { background-color: #6c757d; color: white; }
+        .btn-cancel:hover { background-color: #5a6268; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>ตรวจสอบข้อมูลก่อนนำเข้า</h1>
+        {% if records %}
+            <p>พบข้อมูลทั้งหมด <strong>{{ records|length }}</strong> รายการที่จะนำเข้า กรุณาตรวจสอบความถูกต้องก่อนกดยืนยัน</p>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            {% for key in records[0].keys() %}
+                                <th>{{ key }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in records %}
+                        <tr>
+                            {% for value in record.values() %}
+                                <td>{{ value if value is not none else '' }}</td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <form action="{{ url_for('confirm_import') }}" method="post" class="actions">
+                <input type="hidden" name="temp_filename" value="{{ temp_filename }}">
+                <input type="hidden" name="selected_date" value="{{ selected_date }}">
+                <a href="{{ url_for('upload_file') }}" class="btn btn-cancel">ยกเลิกและกลับไปหน้าแรก</a>
+                <button type="submit" class="btn btn-confirm">ยืนยันการนำเข้า</button>
+            </form>
+        {% else %}
+            <p>ไม่พบข้อมูลที่จะแสดงผล</p>
+            <a href="{{ url_for('upload_file') }}" class="btn btn-cancel">กลับไปหน้าแรก</a>
+        {% endif %}
+    </div>
+</body>
+</html>

@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="th">
+<head>
+    <meta charset="utf-8">
+    <title>นำเข้าข้อมูลสำเร็จ</title>
+    <style>
+        body { font-family: sans-serif; background-color: #f4f4f9; color: #333; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .container { background: #fff; padding: 2rem 3rem; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center; }
+        h1 { color: #28a745; }
+        a { color: #007bff; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>นำเข้าข้อมูลสำเร็จ! ✅</h1>
+        <p>ระบบได้นำเข้าข้อมูลจำนวน <strong>{{ count }}</strong> รายการลงในฐานข้อมูลเรียบร้อยแล้ว</p>
+        <br>
+        <a href="{{ url_for('upload_file') }}">กลับไปที่หน้าอัปโหลด</a>
+    </div>
+</body>
+</html>
