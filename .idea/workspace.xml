@@ -4,8 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="06627ee0-608b-4423-b6e6-f89ddd05e536" name="Changes" comment="Fix MongoDB">
-      <change beforePath="$PROJECT_DIR$/.env" beforeDir="false" />
+    <list default="true" id="06627ee0-608b-4423-b6e6-f89ddd05e536" name="Changes" comment="Delete .env">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -81,12 +80,21 @@
       <option name="project" value="LOCAL" />
       <updated>1752501422841</updated>
     </task>
-    <option name="localTasksCounter" value="3" />
+    <task id="LOCAL-00003" summary="Delete .env">
+      <option name="closed" value="true" />
+      <created>1752501484304</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1752501484304</updated>
+    </task>
+    <option name="localTasksCounter" value="4" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="Initial" />
     <MESSAGE value="Fix MongoDB" />
-    <option name="LAST_COMMIT_MESSAGE" value="Fix MongoDB" />
+    <MESSAGE value="Delete .env" />
+    <option name="LAST_COMMIT_MESSAGE" value="Delete .env" />
   </component>
 </project>
