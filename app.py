@@ -4,11 +4,6 @@ from pymongo import MongoClient, DESCENDING
 from datetime import datetime, time
 import os
 import uuid
-from dotenv import load_dotenv
-
-# --- โหลดการตั้งค่าจากไฟล์ .env ---
-# ทำให้เราสามารถเก็บ MONGO_URI ไว้ข้างนอกโค้ดได้
-load_dotenv()
 
 # --- ตั้งค่าพื้นฐาน ---
 app = Flask(__name__)
@@ -18,25 +13,14 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 
-# --- ตั้งค่าการเชื่อมต่อ MongoDB ---
-# อ่านค่า MONGO_URI จาก Environment Variable ที่อยู่ในไฟล์ .env
-# วิธีนี้ทำให้คุณไม่ต้องแก้ไขโค้ดโดยตรงเมื่อต้องการเปลี่ยน URI
-MONGO_URI = os.getenv("MONGO_URI")
-
-# ตรวจสอบว่าได้ตั้งค่า MONGO_URI แล้วหรือยัง
-if not MONGO_URI:
-    print("="*50)
-    print("!!! คำเตือน: ไม่พบการตั้งค่า MONGO_URI !!!")
-    print("กรุณาสร้างไฟล์ .env ในโฟลเดอร์เดียวกับ app.py")
-    print("แล้วเพิ่ม: MONGO_URI='your_connection_string' เข้าไป")
-    print("="*50)
-
-
 # --- ฟังก์ชันประมวลผลข้อมูล (แยกออกมาเพื่อใช้ซ้ำ) ---
-def process_excel_data(filepath, selected_date_str):
+def process_excel_data(filepath, selected_date_str, mongo_uri):
     """
     อ่านไฟล์ Excel, กรองข้อมูล, และสร้าง list ของ records ที่จะนำเข้า
     """
+    if not mongo_uri:
+        raise ValueError("ไม่ได้ระบุ Mongo URI สำหรับการเชื่อมต่อ")
+
     # 1. อ่านไฟล์ Excel
     df = pd.read_excel(filepath, sheet_name='IssueTracker', header=None, skiprows=8)
     if df.empty:
@@ -47,12 +31,12 @@ def process_excel_data(filepath, selected_date_str):
     date_column_index = 5
     df[date_column_index] = pd.to_datetime(df[date_column_index], errors='coerce').dt.date
     filtered_df = df[df[date_column_index] == selected_date.date()].copy()
-    
+
     if filtered_df.empty:
         raise ValueError(f"ไม่พบข้อมูลสำหรับวันที่ {selected_date.strftime('%d/%m/%Y')} ในชีท IssueTracker")
 
     # 3. สร้าง log_id
-    client = MongoClient(MONGO_URI)
+    client = MongoClient(mongo_uri)
     db = client['nbtc']
     collection = db['service_request_nbtc']
     last_doc = collection.find_one(
@@ -110,7 +94,7 @@ def process_excel_data(filepath, selected_date_str):
                 return None if pd.isna(val) else val
             except IndexError:
                 return default
-        
+
         assignment_time_str = format_time_to_string(get_value(6))
         completed_time_str = format_time_to_string(get_value(8))
 
@@ -147,7 +131,7 @@ def process_excel_data(filepath, selected_date_str):
             "update_user": "AutoImportExcel"
         }
         records_to_insert.append(record)
-    
+
     return records_to_insert
 
 
@@ -159,18 +143,29 @@ def upload_file():
     if request.method == 'POST':
         if 'excel_file' not in request.files:
             return render_template('index.html', error="ไม่พบไฟล์ที่แนบมา")
-        
-        file = request.files['excel_file']
-        selected_date_str = request.form.get('selected_date')
 
+        file = request.files['excel_file']
+
+        # รับค่าการเชื่อมต่อจากฟอร์ม
+        selected_date_str = request.form.get('selected_date')
+        mongo_host = request.form.get('mongo_host')
+        mongo_port = request.form.get('mongo_port')
+        mongo_user = request.form.get('mongo_user')
+        mongo_pass = request.form.get('mongo_pass')
+
+        # ตรวจสอบข้อมูลพื้นฐาน
         if file.filename == '':
             return render_template('index.html', error="กรุณาเลือกไฟล์ที่ต้องการอัปโหลด")
-        
         if not selected_date_str:
             return render_template('index.html', error="กรุณาเลือกวันที่ที่ต้องการตรวจสอบ")
+        if not all([mongo_host, mongo_port, mongo_user]):
+            return render_template('index.html', error="กรุณากรอกข้อมูลการเชื่อมต่อให้ครบถ้วน (Host, Port, User)")
 
         if not (file.filename.endswith('.xlsx') or file.filename.endswith('.xls')):
             return render_template('index.html', error="รูปแบบไฟล์ไม่ถูกต้อง กรุณาอัปโหลดไฟล์ .xlsx หรือ .xls เท่านั้น")
+
+        # ประกอบร่าง MONGO_URI จากข้อมูลที่กรอก
+        mongo_uri = f"mongodb://{mongo_user}:{mongo_pass}@{mongo_host}:{mongo_port}/?authSource=admin"
 
         # บันทึกไฟล์ลงในตำแหน่งชั่วคราว
         temp_filename = f"{uuid.uuid4()}_{file.filename}"
@@ -179,12 +174,13 @@ def upload_file():
 
         try:
             # ประมวลผลข้อมูลเพื่อสร้างหน้า Preview
-            records_for_preview = process_excel_data(temp_filepath, selected_date_str)
+            records_for_preview = process_excel_data(temp_filepath, selected_date_str, mongo_uri)
             return render_template(
-                'preview.html', 
-                records=records_for_preview, 
+                'preview.html',
+                records=records_for_preview,
                 temp_filename=temp_filename,
-                selected_date=selected_date_str
+                selected_date=selected_date_str,
+                mongo_uri=mongo_uri # ส่ง URI ที่ประกอบแล้วไปหน้า Preview
             )
         except Exception as e:
             # หากเกิด Error ให้ลบไฟล์ชั่วคราวและแสดงข้อความ
@@ -202,8 +198,9 @@ def confirm_import():
     """
     temp_filename = request.form.get('temp_filename')
     selected_date_str = request.form.get('selected_date')
-    
-    if not temp_filename or not selected_date_str:
+    mongo_uri = request.form.get('mongo_uri') # รับ URI ที่ประกอบร่างแล้วกลับมา
+
+    if not all([temp_filename, selected_date_str, mongo_uri]):
         return render_template('index.html', error="Session หมดอายุหรือคำขอไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง")
 
     temp_filepath = os.path.join(app.config['UPLOAD_FOLDER'], temp_filename)
@@ -214,15 +211,15 @@ def confirm_import():
     client = None
     try:
         # ประมวลผลไฟล์อีกครั้งเพื่อความถูกต้องของข้อมูล
-        records_to_insert = process_excel_data(temp_filepath, selected_date_str)
-        
+        records_to_insert = process_excel_data(temp_filepath, selected_date_str, mongo_uri)
+
         # เชื่อมต่อและบันทึกข้อมูล
         if records_to_insert:
-            client = MongoClient(MONGO_URI)
+            client = MongoClient(mongo_uri)
             db = client['nbtc']
             collection = db['service_request_nbtc']
             collection.insert_many(records_to_insert)
-            
+
         return redirect(url_for('success_page', count=len(records_to_insert)))
 
     except Exception as e:
@@ -243,4 +240,3 @@ def success_page():
 
 if __name__ == '__main__':
     app.run(debug=True)
-
