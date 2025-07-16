@@ -49,7 +49,6 @@
             <form action="{{ url_for('confirm_import') }}" method="post" class="actions">
                 <input type="hidden" name="temp_filename" value="{{ temp_filename }}">
                 <input type="hidden" name="selected_date" value="{{ selected_date }}">
-                <input type="hidden" name="mongo_uri" value="{{ mongo_uri }}">
                 <a href="{{ url_for('upload_file') }}" class="btn btn-cancel">ยกเลิกและกลับไปหน้าแรก</a>
                 <button type="submit" class="btn btn-confirm">ยืนยันการนำเข้า</button>
             </form>
